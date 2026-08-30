@@ -1,0 +1,855 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+  <title>今日塔罗</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html { touch-action: manipulation; }
+    html, body { height: 100%; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI",
+                   "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
+      -webkit-font-smoothing: antialiased;
+      -webkit-tap-highlight-color: transparent;
+      -webkit-user-select: none;
+      user-select: none;
+      color: #e8e2d4;
+      background: radial-gradient(120% 80% at 50% 0%, #232447 0%, #171830 45%, #0d0e1c 100%);
+      min-height: 100vh;
+      overflow-x: hidden;
+    }
+
+    .page {
+      max-width: 400px;
+      margin: 0 auto;
+      padding: calc(24px + var(--safe-area-inset-top, env(safe-area-inset-top, 0px)))
+               20px calc(40px + var(--safe-area-inset-bottom, env(safe-area-inset-bottom, 0px)));
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      position: relative;
+      z-index: 2;
+    }
+    .view { display: none; flex: 1; flex-direction: column; }
+    .view.active { display: flex; }
+
+    :root {
+      --font-display: Georgia, "Times New Roman", "Songti SC", "STSong", "SimSun", serif;
+    }
+    .gold { color: #d9b96c; }
+    .orn {
+      display: flex; align-items: center; gap: 10px;
+      margin: 0 auto 14px; width: fit-content;
+      color: rgba(217,185,108,0.55);
+    }
+    .orn::before, .orn::after {
+      content: '';
+      width: 56px; height: 1px;
+      background: linear-gradient(90deg, transparent, rgba(217,185,108,0.6));
+    }
+    .orn::after { background: linear-gradient(270deg, transparent, rgba(217,185,108,0.6)); }
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after { animation-duration: 0.01ms !important; animation-iteration-count: 1 !important; transition-duration: 0.01ms !important; }
+    }
+    .btn {
+      border: none;
+      border-radius: 24px;
+      padding: 13px 26px;
+      font-size: 15px;
+      font-weight: 600;
+      cursor: pointer;
+      font-family: inherit;
+      transition: transform 0.15s ease, opacity 0.15s ease;
+    }
+    .btn:active { transform: scale(0.96); opacity: 0.85; }
+    .btn-gold {
+      background: linear-gradient(135deg, #d9b96c, #b8933b);
+      color: #241d08;
+      box-shadow: 0 4px 18px rgba(217, 185, 108, 0.25);
+    }
+    .btn-ghost {
+      background: transparent;
+      color: #d9b96c;
+      border: 1px solid rgba(217, 185, 108, 0.5);
+    }
+    .btn-dim { background: rgba(255,255,255,0.08); color: #b9b3a4; }
+    .btn[disabled] { opacity: 0.4; }
+
+    /* ---- 首页 ---- */
+    .home-bg {
+      position: fixed; inset: 0; z-index: 0;
+      background-size: cover;
+      background-position: center;
+      opacity: 0.35;
+    }
+    .home-bg::after {
+      content: '';
+      position: absolute; inset: 0;
+      background: linear-gradient(180deg, rgba(13,14,28,0.55) 0%, rgba(13,14,28,0.85) 55%, #0d0e1c 100%);
+    }
+    .home-bg-stars { position: fixed; inset: 0; pointer-events: none; z-index: 1; }
+    .star {
+      position: absolute;
+      width: 3px; height: 3px;
+      border-radius: 50%;
+      background: #fff;
+      opacity: 0.5;
+      animation: twinkle 3s infinite ease-in-out;
+    }
+    @keyframes twinkle { 0%,100% { opacity: 0.15; } 50% { opacity: 0.75; } }
+    .home-inner { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; position: relative; z-index: 2; }
+    .home-logo {
+      width: 84px; height: 84px;
+      border-radius: 50%;
+      object-fit: cover;
+      border: 2px solid rgba(217, 185, 108, 0.6);
+      box-shadow: 0 4px 20px rgba(0,0,0,0.45);
+      margin-bottom: 20px;
+    }
+    .home-text {
+      background: #1b1c38;
+      border: 1px solid rgba(217, 185, 108, 0.25);
+      border-radius: 16px;
+      padding: 18px 26px;
+      margin-bottom: 30px;
+    }
+    .home-greeting { font-size: 23px; font-weight: 600; letter-spacing: 2px; margin-bottom: 8px; font-family: var(--font-display); }
+    .home-sub { font-size: 13px; color: #b5aecf; margin-bottom: 0; line-height: 1.6; }
+    .card-box {
+      width: 150px; height: 220px;
+      border-radius: 14px;
+      background: radial-gradient(circle at 30% 25%, #3a3268 0%, #23204a 55%, #16142e 100%);
+      border: 2px solid rgba(217, 185, 108, 0.75);
+      box-shadow: 0 10px 36px rgba(0,0,0,0.5), 0 0 24px rgba(217,185,108,0.15) inset;
+      display: flex; flex-direction: column; align-items: center; justify-content: center;
+      gap: 10px;
+      cursor: pointer;
+      animation: breathe 3.2s infinite ease-in-out;
+      position: relative;
+      overflow: hidden;
+    }
+    .card-box::before {
+      content: '';
+      position: absolute; top: 8px; left: 8px; right: 8px; bottom: 8px;
+      border: 1px solid rgba(217, 185, 108, 0.35);
+      border-radius: 10px;
+      pointer-events: none;
+    }
+    .card-box-symbol { font-size: 40px; color: #e5c365; }
+    .card-box-title {
+      font-size: 13px; font-weight: 700; letter-spacing: 5px; color: #e5c365;
+      font-family: var(--font-display);
+    }
+    .card-box-tip {
+      font-size: 11px; color: #c9c2dd; margin-top: 18px;
+      background: #1b1c38;
+      padding: 6px 16px;
+      border-radius: 14px;
+      border: 1px solid rgba(217, 185, 108, 0.2);
+    }
+    @keyframes breathe { 0%,100% { transform: translateY(0); } 50% { transform: translateY(-8px); } }
+
+    /* ---- 牌阵选择 ---- */
+    .page-title {
+      text-align: center; font-size: 20px; font-weight: 700;
+      font-family: var(--font-display);
+      margin: 14px auto 6px; letter-spacing: 3px;
+      background: #1b1c38;
+      border-radius: 12px;
+      padding: 8px 20px;
+      width: fit-content;
+      border: 1px solid rgba(217, 185, 108, 0.2);
+    }
+    .page-sub {
+      text-align: center; font-size: 12px; color: #beb8d4; margin: 0 auto 24px;
+      background: #171830;
+      border-radius: 10px;
+      padding: 5px 16px;
+      width: fit-content;
+    }
+    .spread-list { display: flex; flex-direction: column; gap: 14px; }
+    .spread-card {
+      background: #1b1c38;
+      border: 1px solid rgba(217,185,108,0.25);
+      border-radius: 16px;
+      padding: 18px;
+      cursor: pointer;
+      transition: border-color 0.2s, background 0.2s;
+      display: flex; align-items: center; gap: 16px;
+    }
+    .spread-card.active { border-color: #d9b96c; background: #26254a; }
+    .spread-icon { font-size: 30px; }
+    .spread-name { font-size: 16px; font-weight: 600; margin-bottom: 4px; }
+    .spread-desc { font-size: 12px; color: #9a94b8; line-height: 1.6; }
+    .spread-hint { margin-top: 10px; font-size: 12px; color: #9c96bb; line-height: 1.7; }
+    .spread-more {
+      margin-top: 14px;
+      font-size: 11px;
+      color: #a49dc4;
+      line-height: 1.8;
+      text-align: center;
+      padding: 8px 14px;
+      background: #171830;
+      border-radius: 10px;
+      border: 1px solid rgba(217, 185, 108, 0.18);
+    }
+    .toggle-row {
+      margin-top: 22px;
+      display: flex; align-items: center; justify-content: space-between;
+      background: #1b1c38;
+      border: 1px solid rgba(217,185,108,0.2);
+      border-radius: 14px;
+      padding: 14px 16px;
+    }
+    .toggle-label { font-size: 14px; }
+    .toggle-desc { font-size: 11px; color: #8d86ac; margin-top: 2px; }
+    .toggle {
+      width: 46px; height: 26px; border-radius: 13px;
+      background: rgba(255,255,255,0.15);
+      position: relative; cursor: pointer; transition: background 0.2s;
+      flex-shrink: 0;
+    }
+    .toggle.on { background: #b8933b; }
+    .toggle::after {
+      content: '';
+      position: absolute; top: 3px; left: 3px;
+      width: 20px; height: 20px; border-radius: 50%;
+      background: #fff;
+      transition: left 0.2s;
+    }
+    .toggle.on::after { left: 23px; }
+    .spread-actions { margin-top: auto; padding-top: 26px; display: flex; flex-direction: column; gap: 10px; }
+    .btn-block { width: 100%; }
+
+    /* ---- 洗牌 ---- */
+    .shuffle-inner { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; }
+    .shuffle-deck { position: relative; width: 120px; height: 190px; margin-bottom: 34px; }
+    .shuffle-card {
+      position: absolute; width: 100%; height: 100%;
+      border-radius: 12px;
+      background: radial-gradient(circle at 35% 30%, #3a3268 0%, #23204a 55%, #16142e 100%);
+      border: 2px solid rgba(217,185,108,0.7);
+      box-shadow: 0 8px 24px rgba(0,0,0,0.4);
+      display: flex; flex-direction: column; align-items: center; justify-content: center;
+      color: #e5c365;
+      animation: shuffling 1.6s infinite alternate ease-in-out;
+    }
+    .shuffle-card::before {
+      content: '';
+      position: absolute; top: 8px; left: 8px; right: 8px; bottom: 8px;
+      border: 1px solid rgba(217,185,108,0.35);
+      border-radius: 8px;
+      pointer-events: none;
+    }
+    .shuffle-card .sym { font-size: 26px; }
+    .shuffle-card .t { font-size: 10px; letter-spacing: 3px; margin-top: 6px; font-weight: 700; }
+    .shuffle-card:nth-child(2) { animation-delay: 0.27s; }
+    .shuffle-card:nth-child(3) { animation-delay: 0.54s; }
+    @keyframes shuffling {
+      0% { transform: rotate(-7deg) translateX(-10px); }
+      100% { transform: rotate(7deg) translateX(10px); }
+    }
+    .shuffle-title { font-size: 17px; font-weight: 600; margin-bottom: 10px; }
+    .shuffle-text { font-size: 13px; color: #b9b3a4; line-height: 1.8; max-width: 300px; margin-bottom: 22px; }
+    .shuffle-tip {
+      font-size: 12px; color: #b9b3d4; line-height: 1.7;
+      background: #1b1c38;
+      border: 1px dashed rgba(217,185,108,0.4);
+      border-radius: 12px;
+      padding: 12px 16px;
+      max-width: 320px;
+      min-height: 58px;
+    }
+    .countdown {
+      margin-top: 26px;
+      width: 44px; height: 44px; border-radius: 50%;
+      border: 2px solid rgba(217,185,108,0.6);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 19px; font-weight: 700; color: #d9b96c;
+      font-family: var(--font-display);
+      box-shadow: 0 0 14px rgba(217,185,108,0.2);
+    }
+
+    /* ---- 抽牌 ---- */
+    .draw-inner { flex: 1; display: flex; flex-direction: column; }
+    /* 标题+牌位块在底部牌堆上方的空间内垂直居中 */
+    .draw-inner::before { content: ''; flex: 1 1 0; }
+    .draw-prompt { text-align: center; font-size: 15px; font-weight: 600; margin: 20px 0 6px; }
+    .draw-sub { text-align: center; font-size: 12px; color: #9a94b8; margin-bottom: 20px; }
+    /* ---- 抽牌页：虚线框 + 弧形牌堆 ---- */
+    .slots {
+      display: flex; justify-content: center; align-items: flex-start;
+      gap: 18px; min-height: 176px; margin-top: 4px;
+    }
+    .slot { display: flex; flex-direction: column; align-items: center; gap: 8px; }
+    .slot-frame {
+      position: relative; width: 86px; height: 146px; border-radius: 10px;
+      perspective: 600px;
+    }
+    .slot-frame.empty {
+      border: 1.5px dashed rgba(217,185,108,0.4);
+      background: rgba(217,185,108,0.04);
+    }
+    .slot-frame.empty::after {
+      content: '✦';
+      position: absolute; inset: 0;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 16px; color: rgba(217,185,108,0.3);
+    }
+    .slot-label { font-size: 12px; color: #a7a1c4; letter-spacing: 1px; }
+    /* 三牌阵位次解法矩阵：与三个牌位逐列对齐 */
+    .slot-matrix {
+      display: grid;
+      grid-template-columns: repeat(3, 86px);
+      column-gap: 18px;
+      row-gap: 3px;
+      justify-content: center;
+      margin-top: 3px;
+      font-size: 10.5px;
+      line-height: 1.5;
+      color: #7f78a0;
+      text-align: center;
+      letter-spacing: 0.5px;
+    }
+    .slot-matrix span { white-space: nowrap; }
+    .slot-back {
+      position: absolute; inset: 0; border-radius: 10px;
+      background: radial-gradient(circle at 35% 30%, #3a3268 0%, #23204a 55%, #16142e 100%);
+      border: 2px solid rgba(217,185,108,0.65);
+      box-shadow: 0 8px 22px rgba(0,0,0,0.45);
+      display: flex; flex-direction: column; align-items: center; justify-content: center;
+      color: rgba(229,195,101,0.85);
+      cursor: pointer;
+      animation: slotin 0.4s ease;
+    }
+    .slot-frame.ready .slot-back { animation: slotin 0.4s ease; }
+    /* 下一张要翻开的牌：金色发光 + 悬浮引导（从左到右依次点亮） */
+    .slot-frame.next { z-index: 2; }
+    .slot-frame.next .slot-back {
+      animation: slotin 0.4s ease, slotglow 2s ease-in-out 0.6s infinite;
+    }
+    .slot-frame.next + .slot-label { color: #e5c365; font-weight: 600; }
+    .slot-back .sym { font-size: 20px; }
+    .slot-back .t { font-size: 8px; letter-spacing: 2px; margin-top: 6px; opacity: 0.8; }
+    .slot-frame.opened img {
+      width: 100%; height: 100%; object-fit: cover;
+      border-radius: 10px; border: 2px solid rgba(217,185,108,0.5);
+      box-shadow: 0 8px 22px rgba(0,0,0,0.45);
+      display: block;
+    }
+    .slot-frame.opened img.reversed { transform: rotate(180deg); }
+    /* 原地翻牌：牌背 3D 转到牌面，不离开本页 */
+    .slot-flipper {
+      position: absolute; inset: 0;
+      transform-style: preserve-3d;
+      transition: transform 0.7s ease;
+    }
+    .slot-frame.flipped .slot-flipper { transform: rotateY(180deg); }
+    .slot-flipper .slot-back { backface-visibility: hidden; -webkit-backface-visibility: hidden; }
+    .slot-face {
+      position: absolute; inset: 0;
+      transform: rotateY(180deg);
+      backface-visibility: hidden; -webkit-backface-visibility: hidden;
+      border-radius: 10px; overflow: hidden;
+      border: 2px solid rgba(217,185,108,0.5);
+      box-shadow: 0 8px 22px rgba(0,0,0,0.45);
+      background: #fff;
+    }
+    .slot-face img { width: 100%; height: 100%; object-fit: cover; display: block; }
+    .slot-face img.reversed { transform: rotate(180deg); }
+    @keyframes slotin {
+      from { opacity: 0; transform: translateY(16px) scale(0.82); }
+      to { opacity: 1; transform: none; }
+    }
+    @keyframes slotglow {
+      0%, 100% {
+        box-shadow: 0 8px 22px rgba(0,0,0,0.45), 0 0 0 rgba(217,185,108,0);
+        transform: translateY(0);
+      }
+      50% {
+        box-shadow: 0 14px 30px rgba(0,0,0,0.5), 0 0 26px rgba(217,185,108,0.65);
+        transform: translateY(-5px);
+      }
+    }
+    .fan-wrap {
+      flex: 1; display: flex; align-items: flex-end; justify-content: center;
+      padding: 8px 0 6px; min-height: 172px;
+      position: relative;
+      transition: opacity 0.45s ease, transform 0.45s ease;
+    }
+    /* 牌堆上方悬浮提示 */
+    .fan-hint {
+      position: absolute; left: 50%; bottom: 188px;
+      transform: translateX(-50%);
+      font-size: 12px; color: #d9b96c; letter-spacing: 1px;
+      background: rgba(27,28,56,0.85);
+      border: 1px solid rgba(217,185,108,0.4);
+      padding: 5px 14px; border-radius: 14px;
+      white-space: nowrap;
+      pointer-events: none;
+      animation: hintfloat 2.6s ease-in-out infinite;
+    }
+    @keyframes hintfloat {
+      0%, 100% { transform: translateX(-50%) translateY(0); opacity: 0.8; }
+      50% { transform: translateX(-50%) translateY(-4px); opacity: 1; }
+    }
+    .fan-wrap.done { opacity: 0.15; pointer-events: none; transform: translateY(16px) scale(0.94); }
+    .fan { position: relative; width: 100%; max-width: 400px; height: 172px; }
+    .slot-frame.locked .slot-back { opacity: 0.5; cursor: default; }
+    .fan-card {
+      position: absolute; left: 50%; top: 8px;
+      width: 72px; height: 122px; margin-left: -36px;
+      border-radius: 9px;
+      background: radial-gradient(circle at 35% 30%, #3a3268 0%, #23204a 55%, #16142e 100%);
+      border: 2px solid rgba(217,185,108,0.6);
+      box-shadow: 0 4px 12px rgba(0,0,0,0.4);
+      display: flex; flex-direction: column; align-items: center; justify-content: center;
+      color: rgba(229,195,101,0.85);
+      cursor: pointer;
+      transform-origin: 50% 300px;
+      transition: opacity 0.35s ease, transform 0.35s ease;
+    }
+    .fan-card.faded { opacity: 0.35; }
+    .fan-card .sym { font-size: 14px; }
+    .fan-card .t { font-size: 7px; letter-spacing: 1.5px; margin-top: 4px; opacity: 0.75; }
+    .fan-card.picked {
+      opacity: 0; pointer-events: none;
+      transform: rotate(0deg) translateY(-34px) scale(0.6) !important;
+    }
+    .draw-confirm { padding-top: 24px; }
+
+    /* ---- 牌背 / 牌面 ---- */
+    .stage-inner { flex: 1; display: flex; flex-direction: column; align-items: center; }
+    .position-tag {
+      margin-top: 18px;
+      font-size: 12px; font-weight: 600; color: #d9b96c;
+      background: rgba(217,185,108,0.12);
+      border: 1px solid rgba(217,185,108,0.35);
+      padding: 4px 14px; border-radius: 12px;
+      letter-spacing: 1px;
+    }
+    .stage-cards { display: flex; gap: 16px; justify-content: center; margin: 26px 0; }
+    .big-card {
+      width: 168px; height: 280px;
+      border-radius: 14px;
+      perspective: 900px;
+      cursor: pointer;
+    }
+    .big-card .face {
+      width: 100%; height: 100%;
+      border-radius: 14px;
+      position: relative;
+      transform-style: preserve-3d;
+      transition: transform 0.7s ease;
+      box-shadow: 0 12px 34px rgba(0,0,0,0.5);
+    }
+    .big-card.flipped .face { transform: rotateY(180deg); }
+    .card-back-img, .card-front-img {
+      position: absolute; inset: 0;
+      border-radius: 14px;
+      backface-visibility: hidden;
+      -webkit-backface-visibility: hidden;
+      overflow: hidden;
+    }
+    .card-back-img {
+      background: radial-gradient(circle at 35% 30%, #3a3268 0%, #23204a 55%, #16142e 100%);
+      border: 2px solid rgba(217,185,108,0.75);
+      display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 8px;
+    }
+    .card-back-img::before {
+      content: '';
+      position: absolute; top: 8px; left: 8px; right: 8px; bottom: 8px;
+      border: 1px solid rgba(217,185,108,0.35);
+      border-radius: 10px;
+    }
+    .card-back-img .sym { font-size: 34px; color: #e5c365; }
+    .card-back-img .t { font-size: 12px; letter-spacing: 3px; color: #e5c365; font-weight: 700; }
+    .card-front-img {
+      transform: rotateY(180deg);
+      background: #fff;
+      border: 2px solid rgba(217,185,108,0.6);
+    }
+    .card-front-img img {
+      width: 100%; height: 100%;
+      object-fit: cover;
+      display: block;
+      -webkit-user-select: none; user-select: none;
+    }
+    .card-front-img img.reversed { transform: rotate(180deg); }
+    .card-name { font-size: 19px; font-weight: 700; letter-spacing: 2px; font-family: var(--font-display); }
+    .card-name-en { font-size: 12px; color: #a7a1c4; margin-top: 3px; letter-spacing: 1px; }
+    .orientation-tag {
+      display: inline-block;
+      margin-top: 8px;
+      font-size: 12px; font-weight: 600;
+      padding: 3px 12px; border-radius: 10px;
+    }
+    .orientation-upright { background: rgba(130,178,154,0.18); color: #82b29a; border: 1px solid rgba(130,178,154,0.4); }
+    .orientation-reversed { background: rgba(196,120,90,0.18); color: #d29478; border: 1px solid rgba(196,120,90,0.4); }
+    .flip-tip { font-size: 15px; color: #8d86ac; margin-top: 18px; margin-bottom: 22px; text-align: center; }
+    .guidance {
+      animation: rise .5s ease 0.15s backwards;
+      font-size: 13px; color: #ddd6c6; line-height: 1.9;
+      background: #1b1c38;
+      border-left: 3px solid rgba(217,185,108,0.6);
+      border-radius: 0 12px 12px 0;
+      padding: 12px 16px;
+      margin-bottom: 22px;
+      text-align: left;
+      width: 100%;
+    }
+    .stage-actions { margin-top: auto; width: 100%; display: flex; flex-direction: column; gap: 10px; padding-bottom: 6px; }
+
+    /* ---- 牌意 ---- */
+    /* 顶部（牌名/副标题/翻页器）与底部按钮固定，仅牌意内容区滚动 */
+    #view-meaning { overflow: hidden; min-height: 0; }
+    #view-meaning .meaning-body {
+      flex: 1 1 0;
+      min-height: 0;
+      overflow-y: auto;
+      -webkit-overflow-scrolling: touch;
+      overscroll-behavior-y: contain;
+    }
+    .pager {
+      display: flex; align-items: center; justify-content: center;
+      gap: 14px; margin: -8px 0 12px;
+    }
+    .pager-btn {
+      width: 30px; height: 30px; border-radius: 50%;
+      background: rgba(217,185,108,0.12);
+      border: 1px solid rgba(217,185,108,0.4);
+      color: #d9b96c; font-size: 17px; line-height: 1;
+      cursor: pointer; font-family: inherit;
+      transition: opacity 0.15s, transform 0.15s;
+    }
+    .pager-btn:active { transform: scale(0.9); }
+    .pager-btn[disabled] { opacity: 0.25; }
+    #pagerText {
+      font-size: 13px; color: #d9b96c; letter-spacing: 2px;
+      font-family: var(--font-display); min-width: 44px; text-align: center;
+    }
+    .meaning-body {
+      margin-top: 20px;
+      background: #1b1c38;
+      border: 1px solid rgba(217,185,108,0.2);
+      border-radius: 16px;
+      padding: 20px 18px;
+      line-height: 1.9;
+      font-size: 13.5px;
+      text-align: left;
+    }
+    .meaning-row { margin-bottom: 16px; }
+    .meaning-row:last-child { margin-bottom: 0; }
+    .meaning-label {
+      font-size: 12px; font-weight: 700; color: #d9b96c;
+      letter-spacing: 2px; margin-bottom: 5px;
+      display: flex; align-items: center; gap: 6px;
+    }
+    .kw-list { display: flex; flex-wrap: wrap; gap: 6px; }
+    .kw {
+      font-size: 11.5px;
+      background: rgba(217,185,108,0.12);
+      color: #e5c365;
+      padding: 3px 10px;
+      border-radius: 10px;
+    }
+    .meaning-text { font-size: 13px; color: #cfc9ba; line-height: 1.85; }
+    .advice-text { font-size: 13px; color: #b9d4c2; line-height: 1.8; }
+    /* 牌面画面与象征 / 深层解读 / 占卜建议 */
+    .imagery-row .img-sub {
+      font-size: 12.5px; font-weight: 700; color: #e5c365;
+      letter-spacing: 0.5px; margin: 12px 0 2px;
+    }
+    .imagery-row .img-sub:first-of-type { margin-top: 2px; }
+    .meaning-body p { margin: 5px 0; font-size: 13px; color: #cfc9ba; line-height: 1.85; }
+    .meaning-body .md-list { margin: 4px 0 8px; padding-left: 18px; }
+    .meaning-body .md-list li { font-size: 13px; color: #cfc9ba; line-height: 1.8; margin: 2px 0; }
+    .meaning-body .md-q {
+      background: rgba(217,185,108,0.08);
+      border-left: 3px solid rgba(217,185,108,0.5);
+      border-radius: 0 8px 8px 0;
+      padding: 8px 12px; margin: 8px 0;
+      font-size: 13px; color: #e8dfc8; line-height: 1.8;
+    }
+
+    /* ---- 结算页 ---- */
+    .finish-list { margin: 20px 0; display: flex; flex-direction: column; gap: 10px; width: 100%; }
+    .finish-item {
+      animation: rise .45s ease backwards;
+      background: #1b1c38;
+      border: 1px solid rgba(217,185,108,0.2);
+      border-radius: 14px;
+      padding: 14px 16px;
+      display: flex; align-items: center; gap: 14px;
+      text-align: left;
+    }
+    .finish-thumb {
+      width: 44px; height: 68px; border-radius: 6px;
+      object-fit: cover; flex-shrink: 0;
+      border: 1px solid rgba(217,185,108,0.4);
+    }
+    .finish-thumb.reversed { transform: rotate(180deg); }
+    .finish-name { font-size: 14px; font-weight: 600; }
+    .finish-meta { font-size: 11.5px; color: #a7a1c4; margin-top: 3px; }
+
+    /* ---- Modal ---- */
+    .modal-mask {
+      backdrop-filter: blur(4px); -webkit-backdrop-filter: blur(4px);
+      display: none;
+      position: fixed; inset: 0; z-index: 50;
+      background: rgba(8, 8, 18, 0.75);
+      align-items: flex-end;
+      justify-content: center;
+    }
+    .modal-mask.show { display: flex; }
+    .modal {
+      width: 100%; max-width: 400px;
+      background: #1d1e38;
+      border-radius: 20px 20px 0 0;
+      border: 1px solid rgba(217,185,108,0.3);
+      border-bottom: none;
+      padding: 22px 20px calc(24px + var(--safe-area-inset-bottom, env(safe-area-inset-bottom, 0px)));
+    }
+    .modal-title { font-size: 15px; font-weight: 700; margin-bottom: 12px; }
+    .modal textarea {
+      width: 100%; height: 110px;
+      background: rgba(255,255,255,0.06);
+      border: 1px solid rgba(255,255,255,0.12);
+      border-radius: 12px;
+      color: #e8e2d4;
+      font-size: 14px;
+      font-family: inherit;
+      padding: 12px;
+      resize: none;
+      outline: none;
+      -webkit-user-select: text; user-select: text;
+    }
+    .modal textarea:focus { border-color: rgba(217,185,108,0.6); }
+    .modal-actions { display: flex; gap: 10px; margin-top: 14px; }
+    .modal-actions .btn { flex: 1; }
+
+    /* ---- Toast ---- */
+    .toast {
+      position: fixed;
+      backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px);
+      left: 50%; bottom: calc(90px + var(--safe-area-inset-bottom, env(safe-area-inset-bottom, 0px)));
+      transform: translateX(-50%);
+      background: rgba(30, 30, 52, 0.95);
+      border: 1px solid rgba(217,185,108,0.4);
+      color: #e8e2d4;
+      font-size: 13px;
+      padding: 10px 20px;
+      border-radius: 20px;
+      z-index: 99;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.25s;
+      max-width: 80vw;
+      text-align: center;
+    }
+    .toast.show { opacity: 1; }
+
+    /* ---- 顶栏返回 ---- */
+    .nav-back {
+      align-self: flex-start;
+      background: none; border: none;
+      color: #9a94b8; font-size: 13px;
+      padding: 6px 0; cursor: pointer;
+      font-family: inherit;
+      display: inline-flex; align-items: center; gap: 4px;
+    }
+
+    @keyframes rise {
+      0% { opacity: 0; transform: translateY(12px); }
+      100% { opacity: 1; transform: translateY(0); }
+    }
+    .finish-item:nth-child(2) { animation-delay: 0.1s; }
+    .finish-item:nth-child(3) { animation-delay: 0.2s; }
+
+    @media (max-width: 380px) {
+      .big-card { width: 140px; height: 234px; }
+      .draw-card { width: 62px; height: 102px; }
+    }
+  </style>
+</head>
+<body>
+  <div class="home-bg" id="homeBg"></div>
+  <div class="home-bg-stars" id="stars"></div>
+
+  <!-- 首页 -->
+  <div class="page">
+    <section class="view active" id="view-home">
+      <div class="home-inner">
+        <img id="homeLogo" class="home-logo" alt="" />
+        <div class="home-text">
+          <div class="home-greeting" id="greeting">你好</div>
+          <div class="home-sub" id="greetingSub">在忙碌的一天里，<br>留一分钟给内心深处的自己。</div>
+        </div>
+        <div class="card-box" id="cardBox" role="button" aria-label="开始抽牌">
+          <div class="card-box-symbol">✦</div>
+          <div class="card-box-title">TAROT</div>
+        </div>
+        <div class="card-box-tip">轻触牌盒，开启今日的指引</div>
+      </div>
+    </section>
+
+    <!-- 牌阵选择 -->
+    <section class="view" id="view-spread">
+      <div class="orn">✦</div>
+      <div class="page-title">选择你的牌阵</div>
+      <div class="page-sub">不同的牌阵，回应不同深度的问题</div>
+      <div class="spread-list">
+        <div class="spread-card active" id="spreadSingle" role="button">
+          <div class="spread-icon">🔮</div>
+          <div>
+            <div class="spread-name">单牌指引</div>
+            <div class="spread-desc">抽取 1 张牌，作为今天的能量提示与提醒，快速、直接。</div>
+            <div class="spread-hint" id="hintSingle">适合：今天我该关注什么？有什么提醒给我？</div>
+          </div>
+        </div>
+        <div class="spread-card" id="spreadTriple" role="button">
+          <div class="spread-icon">🌌</div>
+          <div>
+            <div class="spread-name">三牌阵</div>
+            <div class="spread-desc">抽取 3 张牌，看清一件事的脉络与走向。</div>
+            <div class="spread-hint" id="hintTriple">适合：某件事的发展走向，或围绕内心的一个问题问成因和未来</div>
+          </div>
+        </div>
+        <div class="spread-more" id="spreadMore">
+          💡 三牌阵的位次可以按你的问题灵活解读：<br>
+          过去 / 现在 / 未来 &nbsp;·&nbsp; 原因 / 现状 / 未来发展<br>
+          意识 / 潜意识 / 整合 &nbsp;·&nbsp; 现状 / 行动 / 结果 &nbsp;·&nbsp; 阻碍 / 资源 / 突破
+        </div>
+      </div>
+      <div class="toggle-row">
+        <div>
+          <div class="toggle-label">启用逆位</div>
+          <div class="toggle-desc">开启后可能抽到逆位牌，解读会更丰富细腻</div>
+        </div>
+        <div class="toggle" id="reversedToggle" role="switch" aria-checked="false"></div>
+      </div>
+      <div class="spread-actions">
+        <button class="btn btn-gold btn-block" id="btnStartShuffle">开始洗牌 ✨</button>
+        <button class="btn btn-dim btn-block" id="btnBackHome">返回</button>
+      </div>
+    </section>
+
+    <!-- 洗牌 -->
+    <section class="view" id="view-shuffle">
+      <div class="shuffle-inner">
+        <div class="countdown" id="countdown" style="margin: 6px 0 30px;">5</div>
+        <div class="shuffle-deck">
+          <div class="shuffle-card"><div class="sym">✦</div><div class="t">TAROT</div></div>
+          <div class="shuffle-card"><div class="sym">✦</div><div class="t">TAROT</div></div>
+          <div class="shuffle-card"><div class="sym">✦</div><div class="t">TAROT</div></div>
+        </div>
+        <div class="shuffle-title">正在洗牌…</div>
+        <div class="shuffle-text">
+          深呼吸，放松肩膀，<br>在心里安静地默念你想向直觉深处提出的问题。
+        </div>
+        <div class="shuffle-tip" id="shuffleTip"></div>
+      </div>
+    </section>
+
+    <!-- 抽牌 -->
+    <section class="view" id="view-draw">
+      <div class="draw-inner" id="drawInner">
+        <div class="draw-prompt" id="drawPrompt">凭直觉点选 1 张牌</div>
+        <div class="draw-sub">静下心，想着你的问题，凭直觉抽取</div>
+        <div class="slots" id="slots"></div>
+        <div class="slot-matrix" id="slotMatrix" style="display:none;"></div>
+        <div class="flip-tip" id="drawFlipTip" style="display:none;">👆 请从左到右依次点击牌面，翻开它</div>
+        <button class="btn btn-gold btn-block" id="btnGoMeaning" style="display:none;margin-top:16px;">查看牌意 📖</button>
+        <button class="btn btn-ghost btn-block" id="btnDrawNote" style="display:none;margin-top:10px;">记录感受 ✍️</button>
+        <button class="btn btn-dim btn-block" id="btnDrawFinish" style="display:none;margin-top:10px;">完成本次抽牌 ✓</button>
+        <div class="fan-wrap" id="fanWrap">
+          <div class="fan-hint" id="fanHint">随机选取一张牌</div>
+          <div class="fan" id="fan"></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 牌面 -->
+    <section class="view" id="view-face">
+      <div class="stage-inner">
+        <div class="position-tag" id="facePosition">今日指引</div>
+        <div class="stage-cards">
+          <div class="big-card flipped" id="faceCard">
+            <div class="face">
+              <div class="card-back-img">
+                <div class="sym">✦</div>
+                <div class="t">TAROT</div>
+              </div>
+              <div class="card-front-img">
+                <img id="faceImg" src="" alt="牌面" />
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="card-name" id="faceName"></div>
+        <div class="card-name-en" id="faceNameEn"></div>
+        <div class="orientation-tag orientation-upright" id="faceOrientation">正位</div>
+        <div class="guidance" style="margin-top:16px;">
+          看着这张牌——你看到了什么画面？<br>牌中的人物在做什么、又在感受着什么？
+        </div>
+        <div class="stage-actions">
+          <button class="btn btn-gold btn-block" id="btnViewMeaning">看牌意 📖</button>
+          <button class="btn btn-ghost btn-block" id="btnFaceNote">记录感受 ✍️</button>
+          <button class="btn btn-dim btn-block" id="btnFaceNext">下一张 →</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- 牌意 -->
+    <section class="view" id="view-meaning">
+      <div class="orn">✦</div>
+      <div class="page-title" id="meaningTitle">牌意解读</div>
+      <div class="page-sub" id="meaningSub"></div>
+      <div class="pager" id="meaningPager" style="display:none;">
+        <button class="pager-btn" id="pagerPrev" aria-label="上一张">‹</button>
+        <span id="pagerText">1 / 3</span>
+        <button class="pager-btn" id="pagerNext" aria-label="下一张">›</button>
+      </div>
+      <div class="meaning-body" id="meaningBody"></div>
+      <div class="stage-actions" style="padding-top:18px;">
+        <button class="btn btn-gold btn-block" id="btnMeaningNext">下一张 →</button>
+        <button class="btn btn-ghost btn-block" id="btnMeaningNote">记录感受 ✍️</button>
+        <button class="btn btn-dim btn-block" id="btnMeaningBack">返回牌面</button>
+      </div>
+    </section>
+
+    <!-- 结算 -->
+    <section class="view" id="view-finish">
+      <div class="orn">✦</div>
+      <div class="page-title">今日的指引已呈现</div>
+      <div class="page-sub">回顾你抽到的牌，把它们记进今天的日记吧</div>
+      <div class="finish-list" id="finishList"></div>
+      <div class="stage-actions">
+        <button class="btn btn-gold btn-block" id="btnPostNote">保存今日抽牌为笔记 📝</button>
+        <button class="btn btn-ghost btn-block" id="btnSaveAlbum">保存抽牌结果到相册 🖼</button>
+        <button class="btn btn-dim btn-block" id="btnRestart">重新抽一次</button>
+      </div>
+    </section>
+  </div>
+
+  <!-- 感受输入 -->
+  <div class="modal-mask" id="noteMask">
+    <div class="modal">
+      <div class="modal-title">✍️ 记录这一刻的感受</div>
+      <textarea id="noteInput" placeholder="这张牌让你联想到了什么？直觉、画面、最近的事…"></textarea>
+      <div class="modal-actions">
+        <button class="btn btn-dim" id="btnNoteCancel">取消</button>
+        <button class="btn btn-gold" id="btnNoteSave">保存</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="toast" id="toast"></div>
+
+  <script src="./data.js"></script>
+  <script src="./cards-data.js"></script>
+  <script src="./app.js"></script>
+</body>
+</html>

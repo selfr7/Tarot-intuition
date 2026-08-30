@@ -1,0 +1,13 @@
+# 构建产物（python build_zip.py 重新生成）
+dist/
+今日塔罗.zip
+
+# 开发环境：技能克隆（含嵌套 .git）
+.agents/
+
+# 抓取临时文件
+_scrape_tmp/
+
+# 系统文件
+.DS_Store
+Thumbs.db
